@@ -1,14 +1,16 @@
 #include "http_server.h"
-#include "esp_log.h"
+#include <esp_log.h>
 
 const static char TAG[] = "http_server";
+
+httpd_handle_t stream_httpd = NULL;
 
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
-esp_err_t jpg_stream_httpd_handler(httpd_req_t *req){
+static esp_err_t jpg_stream_httpd_handler(httpd_req_t *req){
     camera_fb_t * fb = NULL;
     esp_err_t res = ESP_OK;
     size_t _jpg_buf_len;
@@ -72,4 +74,55 @@ esp_err_t jpg_stream_httpd_handler(httpd_req_t *req){
 
     last_frame = 0;
     return res;
+}
+
+void startCameraServer()
+{
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.max_uri_handlers = 16;
+
+    httpd_uri_t stream_uri = {
+        .uri = "/stream",
+        .method = HTTP_GET,
+        .handler = jpg_stream_httpd_handler,
+        .user_ctx = NULL
+#ifdef CONFIG_HTTPD_WS_SUPPORT
+        ,
+        .is_websocket = true,
+        .handle_ws_control_frames = false,
+        .supported_subprotocol = NULL
+#endif
+    };
+
+    // ra_filter_init(&ra_filter, 20);
+
+// #if CONFIG_ESP_FACE_RECOGNITION_ENABLED
+//     recognizer.set_partition(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "fr");
+
+//     // load ids from flash partition
+//     recognizer.set_ids_from_flash();
+// #endif
+    // log_i("Starting web server on port: '%d'", config.server_port);
+    // if (httpd_start(&camera_httpd, &config) == ESP_OK)
+    // {
+    //     httpd_register_uri_handler(camera_httpd, &index_uri);
+    //     httpd_register_uri_handler(camera_httpd, &cmd_uri);
+    //     httpd_register_uri_handler(camera_httpd, &status_uri);
+    //     httpd_register_uri_handler(camera_httpd, &capture_uri);
+    //     httpd_register_uri_handler(camera_httpd, &bmp_uri);
+
+    //     httpd_register_uri_handler(camera_httpd, &xclk_uri);
+    //     httpd_register_uri_handler(camera_httpd, &reg_uri);
+    //     httpd_register_uri_handler(camera_httpd, &greg_uri);
+    //     httpd_register_uri_handler(camera_httpd, &pll_uri);
+    //     httpd_register_uri_handler(camera_httpd, &win_uri);
+    // }
+
+    // config.server_port += 1;
+    // config.ctrl_port += 1;
+    ESP_LOGI(TAG, "Starting stream server on port: '%d'", config.server_port);
+    if (httpd_start(&stream_httpd, &config) == ESP_OK)
+    {
+        httpd_register_uri_handler(stream_httpd, &stream_uri);
+    }
 }

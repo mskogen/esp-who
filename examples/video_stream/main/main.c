@@ -1,24 +1,33 @@
+#include "wifi.h"
 #include "http_server.h"
 #include "camera.h"
 #include "esp_log.h"
 
 const static char TAG[] = "app_main";
 
+// ===========================
+// Enter your WiFi credentials
+// ===========================
+const char* ssid = "**********";
+const char* password = "**********";
+
 void app_main()
 {
+    // Initialize Camera on ESP-S3-EYE
     if(ESP_OK != init_camera()) {
         return;
     }
 
+    // // Establish WIFI connection
+    app_wifi_main();
+    ESP_LOGI(TAG, "WiFi connected");
+
+    // Start HTTP video stream server
+    startCameraServer();
+
     while (1)
     {
-        ESP_LOGI(TAG, "Taking picture...");
-        camera_fb_t *pic = esp_camera_fb_get();
-
-        // use pic->buf to access the image
-        ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
-        esp_camera_fb_return(pic);
-
+        // Everything is setup so now we just loop forever
         vTaskDelay(5000 / portTICK_RATE_MS);
     }
 }
