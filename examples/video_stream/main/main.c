@@ -5,12 +5,6 @@
 
 const static char TAG[] = "app_main";
 
-// ===========================
-// Enter your WiFi credentials
-// ===========================
-const char* ssid = "**********";
-const char* password = "**********";
-
 void app_main()
 {
     // Initialize Camera on ESP-S3-EYE
